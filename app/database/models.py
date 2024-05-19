@@ -38,6 +38,7 @@ class Partner(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     partner_1: Mapped[int] = mapped_column(ForeignKey('users.id'))
     partner_2: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    accepted: Mapped[bool] = mapped_column(default=False)
 
 
 async def async_main():
