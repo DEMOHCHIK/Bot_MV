@@ -81,9 +81,8 @@ async def decline_partners(partner_record_id):
 
 
 # -- Запрос на получение списка подарков Пользователя --
-async def get_gifts(user_tg_id):
+async def get_gifts(user_id):
     async with async_session() as session:
-        user_id = await get_user_id(user_tg_id)
         user_gifts = await session.scalars(select(Gift).where(Gift.author == user_id))
         return user_gifts.all()
 

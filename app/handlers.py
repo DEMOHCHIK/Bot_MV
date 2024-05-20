@@ -17,7 +17,6 @@ async def cmd_start(message: types.Message):
                          reply_markup=kb.start_reply_keyboard)
 
 
-# -- Подтвеждение партнёрства --
 @router.message(F.text == 'Принять партнёра')
 async def cmd_accepted_partners(message: types.Message):
     user_id = await rq.get_user_id(message.from_user.id)
@@ -36,6 +35,7 @@ async def cmd_accepted_partners(message: types.Message):
         await message.answer('У вас нет приглашений на партнёрство.😪')
 
 
+# -- Подтвеждение партнёрства --
 @router.message(F.text == 'Принять')
 async def cmd_accepted(message: types.Message):
     user_id = await rq.get_user_id(message.from_user.id)
@@ -46,14 +46,15 @@ async def cmd_accepted(message: types.Message):
 
         await rq.accepted_partners(partner_record.id)
         await message.answer(f'Вы приняли партнёрство с @{partner_1.username}!🥳')
-        await message.bot.send_message(
-            chat_id=partner_1.tg_id,
-            text=f'Пользователь @{message.from_user.username}, принял партнёрство с вами!🥳'
-        )
+        # await message.bot.send_message(
+        #     chat_id=partner_1.tg_id,
+        #     text=f'Пользователь @{message.from_user.username}, принял партнёрство с вами!🥳'
+        # )
     else:
         await message.answer('У вас нет приглашений на партнёрство.😪')
 
 
+# -- Отклонение партнёрства --
 @router.message(F.text == 'Отклонить')
 async def cmd_decline(message: types.Message):
     user_id = await rq.get_user_id(message.from_user.id)
@@ -64,10 +65,10 @@ async def cmd_decline(message: types.Message):
 
         await rq.decline_partners(partner_record.id)
         await message.answer(f'Вы отклонили приглашение от @{partner_1.username}.😔')
-        await message.bot.send_message(
-            chat_id=partner_1.tg_id,
-            text=f'Пользователь @{message.from_user.username} отклонил ваше приглашение.😔'
-        )
+        # await message.bot.send_message(
+        #     chat_id=partner_1.tg_id,
+        #     text=f'Пользователь @{message.from_user.username} отклонил ваше приглашение.😔'
+        # )
     else:
         await message.answer('У вас нет приглашений на партнёрство.😪')
 
@@ -79,13 +80,25 @@ async def cmd_menu(message: types.Message):
 
 @router.message(F.text == 'Список желаемого(партнёра)')
 async def cmd_partner_gifts_list(message: types.Message):
-    pass
+    user_id = await rq.get_user_id(message.from_user.id)
+    partner_record = await rq.check_in_partners(user_id)
+
+    if partner_record:
+        partner_id = partner_record.partner_2 if partner_record.partner_1 == user_id else partner_record.partner_1
+        partner_gifts_markup = await kb.gifts(partner_id)
+
+        if partner_gifts_markup:
+            await message.answer('Список желаемых подарков вашего партнёра:', reply_markup=partner_gifts_markup)
+        else:
+            await message.answer('Список желаемого вашего партнёра пуст..😪')
+    else:
+        await message.answer('У вас нет партнёра..😪')
 
 
 @router.message(F.text == 'Список желаемого(свой)')
 async def cmd_my_gifts_list(message: types.Message):
-    user_tg_id = message.from_user.id
-    user_gifts_markup = await kb.gifts(user_tg_id)
+    user_id = await rq.get_user_id(message.from_user.id)
+    user_gifts_markup = await kb.gifts(user_id)
     if user_gifts_markup:
         await message.answer('Список ваших желаемых подарков:', reply_markup=user_gifts_markup)
     else:

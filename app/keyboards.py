@@ -23,8 +23,8 @@ main_reply_keyboard = types.ReplyKeyboardMarkup(keyboard=[[types.KeyboardButton(
                                                 input_field_placeholder='Выберите пункт меню...')
 
 
-async def gifts(user_tg_id):
-    all_gifts = await get_gifts(user_tg_id)
+async def gifts(user_id):
+    all_gifts = await get_gifts(user_id)
 
     if all_gifts:
         keyboard = InlineKeyboardBuilder()
