@@ -10,7 +10,14 @@ async def get_user_id(user_tg_id):
         return user_id
 
 
-# -- Запрос на добавление пользователя в БД --
+# -- Запрос на получение объекта User по id пользователя --
+async def get_user(user_id):
+    async with async_session() as session:
+        user = await session.scalar(select(User).where(User.id == user_id))
+        return user
+
+
+# -- Запрос на проверку/добавление пользователя в БД --
 async def set_user(tg_id, username):
     async with async_session() as session:
         user = await session.scalar(select(User).where(User.tg_id == tg_id))
@@ -24,7 +31,7 @@ async def set_user(tg_id, username):
                 await session.commit()
 
 
-# -- Запрос на поиск пользователя --
+# -- Запрос на поиск пользователя по username --
 async def search_user(username):
     async with async_session() as session:
         user = await session.scalar(select(User).where(User.username == username))
@@ -34,22 +41,43 @@ async def search_user(username):
         return None
 
 
-# -- Запрос на приглашение в партнёры --
-async def partners_connection(partner_1_id, partner_2_id):
+# -- Запрос на создания приглашения в партнёры --
+async def add_partners_connection(partner_1_id, partner_2_id):
     async with async_session() as session:
-        existing_partner = await session.scalar(
-            select(Partner).where(
-                ((Partner.partner_1 == partner_1_id) & (Partner.partner_2 == partner_2_id)) |
-                ((Partner.partner_1 == partner_2_id) & (Partner.partner_2 == partner_1_id))
-            )
-        )
-
-        if existing_partner:
-            return existing_partner
-
         session.add(Partner(partner_1=partner_1_id, partner_2=partner_2_id, accepted=False))
         await session.commit()
-        return True
+
+
+# -- Запрос на поиск приглашения по id пользователя --
+async def check_in_partners(user_id):
+    async with async_session() as session:
+        partner_check = await session.scalar(
+            select(Partner).where((Partner.partner_1 == user_id) | (Partner.partner_2 == user_id)))
+        return partner_check
+
+
+# -- Запрос на проверку открытого партнёрства --
+async def check_accepted_partners(user_id):
+    async with async_session() as session:
+        partner_record = await session.scalar(
+            select(Partner).where((Partner.partner_2 == user_id) & (Partner.accepted == False)))
+        return partner_record
+
+
+# -- Запрос на подтверждение партнёрства --
+async def accepted_partners(partner_record_id):
+    async with async_session() as session:
+        partner_record = await session.get(Partner, partner_record_id)
+        partner_record.accepted = True
+        await session.commit()
+
+
+# -- Запрос на отклонение партнёрства --
+async def decline_partners(partner_record_id):
+    async with async_session() as session:
+        partner_record = await session.get(Partner, partner_record_id)
+        await session.delete(partner_record)
+        await session.commit()
 
 
 # -- Запрос на получение списка подарков Пользователя --

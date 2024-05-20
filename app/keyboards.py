@@ -10,10 +10,10 @@ start_reply_keyboard = types.ReplyKeyboardMarkup(keyboard=[[types.KeyboardButton
                                                  input_field_placeholder='Добавьте/Примите партнёра!',
                                                  one_time_keyboard=True)
 
-accept_partner_reply_keyboard = types.ReplyKeyboardMarkup(keyboard=[[types.KeyboardButton(text='Принять'),
-                                                                     types.KeyboardButton(text='Отклонить')]],
-                                                          resize_keyboard=True,
-                                                          one_time_keyboard=True)
+accepted_partner_reply_keyboard = types.ReplyKeyboardMarkup(keyboard=[[types.KeyboardButton(text='Принять'),
+                                                                       types.KeyboardButton(text='Отклонить')]],
+                                                            resize_keyboard=True,
+                                                            one_time_keyboard=True)
 
 # -- Основное меню --
 main_reply_keyboard = types.ReplyKeyboardMarkup(keyboard=[[types.KeyboardButton(text='Список желаемого(партнёра)')],

@@ -17,6 +17,61 @@ async def cmd_start(message: types.Message):
                          reply_markup=kb.start_reply_keyboard)
 
 
+# -- Подтвеждение партнёрства --
+@router.message(F.text == 'Принять партнёра')
+async def cmd_accepted_partners(message: types.Message):
+    user_id = await rq.get_user_id(message.from_user.id)
+    partner_record = await rq.check_accepted_partners(user_id)
+
+    if partner_record:
+        partner_1 = await rq.get_user(partner_record.partner_1)
+        partner_2 = await rq.get_user(partner_record.partner_2)
+
+        if partner_record.partner_1 == user_id:
+            await message.answer(f'Вы уже отправили приглашение, дождитесь пока @{partner_2.username} примет его.😇')
+        else:
+            await message.answer(f'Примите/Отклоните приглашение своего будущего партнёра @{partner_1.username}:',
+                                 reply_markup=kb.accepted_partner_reply_keyboard)
+    else:
+        await message.answer('У вас нет приглашений на партнёрство.😪')
+
+
+@router.message(F.text == 'Принять')
+async def cmd_accepted(message: types.Message):
+    user_id = await rq.get_user_id(message.from_user.id)
+    partner_record = await rq.check_accepted_partners(user_id)
+
+    if partner_record:
+        partner_1 = await rq.get_user(partner_record.partner_1)
+
+        await rq.accepted_partners(partner_record.id)
+        await message.answer(f'Вы приняли партнёрство с @{partner_1.username}!🥳')
+        await message.bot.send_message(
+            chat_id=partner_1.tg_id,
+            text=f'Пользователь @{message.from_user.username}, принял партнёрство с вами!🥳'
+        )
+    else:
+        await message.answer('У вас нет приглашений на партнёрство.😪')
+
+
+@router.message(F.text == 'Отклонить')
+async def cmd_decline(message: types.Message):
+    user_id = await rq.get_user_id(message.from_user.id)
+    partner_record = await rq.check_accepted_partners(user_id)
+
+    if partner_record:
+        partner_1 = await rq.get_user(partner_record.partner_1)
+
+        await rq.decline_partners(partner_record.id)
+        await message.answer(f'Вы отклонили приглашение от @{partner_1.username}.😔')
+        await message.bot.send_message(
+            chat_id=partner_1.tg_id,
+            text=f'Пользователь @{message.from_user.username} отклонил ваше приглашение.😔'
+        )
+    else:
+        await message.answer('У вас нет приглашений на партнёрство.😪')
+
+
 @router.message(fl.Command(commands='menu'))
 async def cmd_menu(message: types.Message):
     await message.answer('Выберите пункт меню:', reply_markup=kb.main_reply_keyboard)
@@ -24,12 +79,7 @@ async def cmd_menu(message: types.Message):
 
 @router.message(F.text == 'Список желаемого(партнёра)')
 async def cmd_partner_gifts_list(message: types.Message):
-    user_id = message.from_user.id
-    user_gifts_markup = await kb.gifts(user_id)
-    if user_gifts_markup:
-        await message.answer('Список желаемых подарков вашего партнёра:')
-    else:
-        await message.answer('Список желаемых подарков вашего партнёра пуст..😪')
+    pass
 
 
 @router.message(F.text == 'Список желаемого(свой)')
@@ -82,8 +132,32 @@ async def cmd_add_gift_description(message: types.Message, state: FSMContext):
 # -- Добавление Партнёра --
 @router.message(F.text == 'Добавить партнёра')
 async def cmd_add_partner(message: types.Message, state: FSMContext):
-    await state.set_state(Partner.username)
-    await message.answer('Введите @username вашего будущего партнёра🧐')
+    user_id = await rq.get_user_id(message.from_user.id)
+    partner_check = await rq.check_in_partners(user_id)
+
+    if partner_check:
+        partner_1 = await rq.get_user(partner_check.partner_1)
+        partner_2 = await rq.get_user(partner_check.partner_2)
+
+        if partner_check.accepted:
+            if user_id == partner_1.id:
+                await message.answer(f'Вы уже состоите в партнёрстве с @{partner_2.username}!🥰')
+            else:
+                await message.answer(f'Вы уже состоите в партнёрстве с @{partner_1.username}!🥰')
+        else:
+            if user_id == partner_check.partner_2:
+                await message.answer(
+                    f'Пользователь @{partner_1.username} уже отправил вам приглашение о партнёрстве. '
+                    'Нажмите "Принять"!😉',
+                    reply_markup=kb.accepted_partner_reply_keyboard
+                )
+            else:
+                await message.answer(
+                    f'Вы уже отправили приглашение, дождитесь пока @{partner_2.username} примет его.😇'
+                )
+    else:
+        await state.set_state(Partner.username)
+        await message.answer('Введите @username вашего будущего партнёра🧐')
 
 
 @router.message(Partner.username)
@@ -99,25 +173,21 @@ async def cmd_search_partner(message: types.Message, state: FSMContext):
     if user:
         if user.tg_id == message.from_user.id:
             await message.answer('Вы не можете сделать себя своим партнёром!🤪')
+            await state.clear()
+            return
         else:
-            partners_connection = await rq.partners_connection(partner_1_id, user.id)
+            await rq.add_partners_connection(partner_1_id, user.id)
 
-            if isinstance(partners_connection, bool):
-                await message.answer(f'Пользователю {user.username} отправлено приглашение о партнёрстве!🤗',
-                                     reply_markup=kb.main_reply_keyboard)
-                await message.bot.send_message(
-                    chat_id=user.tg_id,
-                    text=f'Вам отправлено приглашение в партнёры от {message.from_user.username}!💞'
-                )
-            elif partners_connection.partner_2 == partner_1_id:
-                await message.answer(
-                    f'Пользователь {user.username} уже отправил вам приглашение о партнёрстве. '
-                    'Нажмите "Принять партнёра"!😉')
-            elif partners_connection.accepted:
-                await message.answer('Вы уже состоите в партнёрстве, неужели хотите совершить страшный грех?🤨')
-            else:
-                await message.answer('Вы уже отправили приглашение, дождитесь пока партнёр примет его.😇')
+            await message.answer(f'Пользователю @{user.username} отправлено приглашение о партнёрстве!🤗',
+                                 reply_markup=kb.main_reply_keyboard)
+            await message.bot.send_message(
+                chat_id=user.tg_id,
+                text=f'Вам отправлено приглашение в партнёры от @{message.from_user.username}!💞'
+                     '\nНажмите "Принять"!😉',
+                reply_markup=kb.accepted_partner_reply_keyboard
+            )
     else:
         await message.answer('Пользователь с таким именем не найден в Базе.😭'
                              '\nПопросите вашего будущего партнёра зайти в Бота и нажать Старт.🤭')
+
     await state.clear()
