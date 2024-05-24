@@ -46,10 +46,10 @@ async def cmd_accepted(message: types.Message):
 
         await rq.accepted_partners(partner_record.id)
         await message.answer(f'Вы приняли партнёрство с @{partner_1.username}!🥳')
-        # await message.bot.send_message(
-        #     chat_id=partner_1.tg_id,
-        #     text=f'Пользователь @{message.from_user.username}, принял партнёрство с вами!🥳'
-        # )
+        await message.bot.send_message(
+            chat_id=partner_1.tg_id,
+            text=f'Пользователь @{message.from_user.username}, принял партнёрство с вами!🥳'
+        )
     else:
         await message.answer('У вас нет приглашений на партнёрство.😪')
 
@@ -65,10 +65,10 @@ async def cmd_decline(message: types.Message):
 
         await rq.decline_partners(partner_record.id)
         await message.answer(f'Вы отклонили приглашение от @{partner_1.username}.😔')
-        # await message.bot.send_message(
-        #     chat_id=partner_1.tg_id,
-        #     text=f'Пользователь @{message.from_user.username} отклонил ваше приглашение.😔'
-        # )
+        await message.bot.send_message(
+            chat_id=partner_1.tg_id,
+            text=f'Пользователь @{message.from_user.username} отклонил ваше приглашение.😔'
+        )
     else:
         await message.answer('У вас нет приглашений на партнёрство.😪')
 
